@@ -39,6 +39,26 @@ fn cmd_pwd() {
     println!("{}", env::current_dir().unwrap().display());
 }
 
+fn cmd_cd(args: &[&str]) {
+    let args_len = args.len();
+
+    if args_len == 0 {
+        return;
+    }
+    if args_len > 1 {
+        println!("cd: too many arguments");
+        return;
+    }
+    let path = &args[0];
+    let new_dir = std::path::Path::new(path);
+    match env::set_current_dir(new_dir) {
+        Ok(_) => {}
+        Err(_) => {
+            println!("{}: No such file or directory", path)
+        }
+    };
+}
+
 fn main() {
     loop {
         // Uncomment this block to pass the first stage
@@ -50,7 +70,7 @@ fn main() {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
 
-        let builtin = ["echo", "exit", "type", "pwd"];
+        let builtin = ["echo", "exit", "type", "pwd", "cd"];
 
         let (cmd, args) = match input.trim().split_once(' ') {
             Some((cmd, args)) => (cmd, args.split(' ').collect()),
@@ -69,6 +89,9 @@ fn main() {
             }
             "pwd" => {
                 cmd_pwd();
+            }
+            "cd" => {
+                cmd_cd(&args);
             }
             _ => {
                 let mut command = std::process::Command::new(cmd);
