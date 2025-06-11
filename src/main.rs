@@ -4,7 +4,7 @@ use std::io::{self, Write};
 fn main() {
     loop {
         // Uncomment this block to pass the first stage
-        print!("$ ");
+        print!("$  ");
         io::stdout().flush().unwrap();
 
         // Wait for user input
