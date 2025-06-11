@@ -4,7 +4,7 @@ use std::io::{self, Write};
 fn main() {
     loop {
         // Uncomment this block to pass the first stage
-        print!("$  ");
+        print!("$ ");
         io::stdout().flush().unwrap();
 
         // Wait for user input
@@ -12,7 +12,7 @@ fn main() {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
 
-        let (cmd, args) = match input.split_once(' ') {
+        let (cmd, args) = match input.trim().split_once(' ') {
             Some((cmd, args)) => (cmd, args),
             None => (input.as_str(), ""),
         };
