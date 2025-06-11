@@ -35,6 +35,10 @@ fn cmd_type(args: &[&str], builtin: &[&str]) {
     }
 }
 
+fn cmd_pwd() {
+    println!("{}", env::current_dir().unwrap().display());
+}
+
 fn main() {
     loop {
         // Uncomment this block to pass the first stage
@@ -46,7 +50,7 @@ fn main() {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
 
-        let builtin = ["echo", "exit", "type"];
+        let builtin = ["echo", "exit", "type", "pwd"];
 
         let (cmd, args) = match input.trim().split_once(' ') {
             Some((cmd, args)) => (cmd, args.split(' ').collect()),
@@ -62,6 +66,9 @@ fn main() {
             }
             "type" => {
                 cmd_type(&args, &builtin);
+            }
+            "pwd" => {
+                cmd_pwd();
             }
             _ => {
                 let mut command = std::process::Command::new(cmd);
