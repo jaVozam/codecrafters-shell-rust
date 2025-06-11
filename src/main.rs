@@ -1,6 +1,5 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::process;
 
 fn main() {
     loop {
@@ -13,10 +12,24 @@ fn main() {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
 
-        if input.trim() == "exit 0" {
-            process::exit(0);
-        }
+        let (cmd, args) = match input.split_once(' ') {
+            Some((cmd, args)) => (cmd, args),
+            None => (input.as_str(), ""),
+        };
 
-        println!("{}: command not found", input.trim());
+        match cmd {
+            "exit" => {
+                if args == "" {
+                    break;
+                }
+                std::process::exit(args.parse().unwrap());
+            }
+            "echo" => {
+                println!("{}", args)
+            }
+            _ => {
+                println!("{}: command not found", input.trim());
+            }
+        }
     }
 }
