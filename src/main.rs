@@ -64,7 +64,15 @@ fn main() {
                 cmd_type(&args, &builtin);
             }
             _ => {
-                println!("{}: command not found", cmd);
+                let mut command = std::process::Command::new(cmd);
+                command.args(args);
+
+                match command.status() {
+                    Ok(_) => {}
+                    Err(_) => {
+                        println!("{}: command not found", cmd);
+                    }
+                }
             }
         }
     }
