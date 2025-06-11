@@ -49,8 +49,17 @@ fn cmd_cd(args: &[&str]) {
         println!("cd: too many arguments");
         return;
     }
-    let path = &args[0];
-    let new_dir = std::path::Path::new(path);
+    let path = match env::home_dir() {
+        Some(home_path) => {
+            let home_str = home_path.to_str().unwrap_or("");
+            args[0].replace("~", home_str) // Returns a new String
+        }
+        None => {
+            println!("Could not determine the home directory.");
+            args[0].to_string() // Still return something
+        }
+    };
+    let new_dir = std::path::Path::new(&path);
     match env::set_current_dir(new_dir) {
         Ok(_) => {}
         Err(_) => {
