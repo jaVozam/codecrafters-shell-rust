@@ -2,17 +2,17 @@ use std::env;
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
-fn cmd_echo(args: &[&str]) {
+fn cmd_echo(args: &Vec<String>) {
     println!("{}", args.join(" "));
 }
 
-fn cmd_type(args: &[&str], builtin: &[&str]) {
+fn cmd_type(args: &Vec<String>, builtin: &[&str]) {
     if args.len() == 0 {
         return;
     }
 
     for arg in args {
-        if builtin.contains(&arg) {
+        if builtin.contains(&arg.as_str()) {
             println!("{} is a shell builtin", arg);
             continue;
         }
@@ -39,7 +39,7 @@ fn cmd_pwd() {
     println!("{}", env::current_dir().unwrap().display());
 }
 
-fn cmd_cd(args: &[&str]) {
+fn cmd_cd(args: &Vec<String>) {
     let args_len = args.len();
 
     if args_len == 0 {
@@ -68,51 +68,108 @@ fn cmd_cd(args: &[&str]) {
     };
 }
 
-fn main() {
-    loop {
-        // Uncomment this block to pass the first stage
-        print!("$ ");
-        io::stdout().flush().unwrap();
+fn command_handler(cmd: &str, args: &Vec<String>, builtin: &[&str]) {
+    match cmd {
+        "exit" => {
+            std::process::exit(0);
+        }
+        "echo" => {
+            cmd_echo(args);
+        }
+        "type" => {
+            cmd_type(args, &builtin);
+        }
+        "pwd" => {
+            cmd_pwd();
+        }
+        "cd" => {
+            cmd_cd(args);
+        }
+        _ => {
+            let mut command = std::process::Command::new(cmd);
+            command.args(args);
 
-        // Wait for user input
-        let stdin = io::stdin();
-        let mut input = String::new();
-        stdin.read_line(&mut input).unwrap();
-
-        let builtin = ["echo", "exit", "type", "pwd", "cd"];
-
-        let (cmd, args) = match input.trim().split_once(' ') {
-            Some((cmd, args)) => (cmd, args.split(' ').collect()),
-            None => (input.trim(), Vec::new()),
-        };
-
-        match cmd {
-            "exit" => {
-                std::process::exit(0);
-            }
-            "echo" => {
-                cmd_echo(&args);
-            }
-            "type" => {
-                cmd_type(&args, &builtin);
-            }
-            "pwd" => {
-                cmd_pwd();
-            }
-            "cd" => {
-                cmd_cd(&args);
-            }
-            _ => {
-                let mut command = std::process::Command::new(cmd);
-                command.args(args);
-
-                match command.status() {
-                    Ok(_) => {}
-                    Err(_) => {
-                        println!("{}: command not found", cmd);
-                    }
+            match command.status() {
+                Ok(_) => {}
+                Err(_) => {
+                    println!("{}: command not found", cmd);
                 }
             }
         }
+    }
+}
+
+fn input() -> String {
+    print!("$ ");
+    io::stdout().flush().unwrap();
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+
+    loop {
+        let mut input_end = false;
+
+        for char in input.chars() {
+            if char == '\'' {
+                input_end = !input_end;
+            }
+        }
+        if !input_end {
+            break;
+        }
+        print!("> ");
+        io::stdout().flush().unwrap();
+        io::stdin().read_line(&mut input).unwrap();
+    }
+    input
+}
+
+fn parse_input(input: String) -> (String, Vec<String>) {
+    let mut result = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    for char in input.chars() {
+        match char {
+            '\'' => {
+                in_quotes = !in_quotes;
+            }
+            ' ' => {
+                if !in_quotes {
+                    if !current.is_empty() {
+                        result.push(current.clone());
+                        current.clear();
+                    }
+                } else {
+                    current.push(char);
+                }
+            }
+            _ => current.push(char),
+        }
+    }
+
+    if !current.is_empty() {
+        result.push(current);
+    }
+
+    let cmd = result.remove(0);
+
+    let args = result;
+
+    return (cmd, args);
+}
+
+fn main() {
+    loop {
+        let builtin = ["echo", "exit", "type", "pwd", "cd"];
+
+        let input = input().trim().to_string();
+
+        if input.is_empty() {
+            continue;
+        }
+
+        let (cmd, args) = parse_input(input);
+
+        command_handler(&cmd, &args, &builtin);
     }
 }
