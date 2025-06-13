@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use std::thread::current;
 
 mod commands;
 
@@ -56,8 +57,11 @@ fn parse_input(input: String) -> (String, Vec<String>) {
                 }
             }
             '\\' => {
-                if in_s_quotes || in_d_quotes {
+                if in_s_quotes {
                     current.push(char);
+                } else if in_d_quotes {
+                    current.push(char);
+                    escape = true;
                 } else {
                     escape = true;
                 }
@@ -73,7 +77,8 @@ fn parse_input(input: String) -> (String, Vec<String>) {
                     escape = false;
                 }
             }
-            _ => {current.push(char);
+            _ => {
+                current.push(char);
                 escape = false;
             }
         }
