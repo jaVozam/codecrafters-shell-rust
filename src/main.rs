@@ -57,6 +57,7 @@ fn parse_input(input: String) -> (String, Vec<String>) {
                     current.push(char);
                     escape = false;
                 }
+                println!("{}", in_d_quotes);
             }
             '\\' => {
                 if in_s_quotes {
