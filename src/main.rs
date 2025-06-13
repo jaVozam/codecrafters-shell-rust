@@ -61,11 +61,11 @@ fn parse_input(input: String) -> (String, Vec<String>) {
             '\\' => {
                 if in_s_quotes {
                     current.push(char);
-                } else if in_d_quotes && !escape {
+                } else if in_d_quotes && escape {
+                    escape = false;
+                } else if !escape && in_d_quotes {
                     current.push(char);
                     escape = true;
-                } else if escape && in_d_quotes {
-                    escape = false;
                 } else {
                     escape = true;
                 }
