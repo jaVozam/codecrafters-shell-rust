@@ -36,33 +36,46 @@ fn parse_input(input: String) -> (String, Vec<String>) {
     let mut current = String::new();
     let mut in_s_quotes = false;
     let mut in_d_quotes = false;
+    let mut escape = false;
     for char in input.chars() {
         match char {
             '\'' => {
-                if !in_d_quotes {
+                if !in_d_quotes && !escape {
                     in_s_quotes = !in_s_quotes;
                 } else {
                     current.push(char);
+                    escape = false;
                 }
             }
             '"' => {
-                if !in_s_quotes {
+                if !in_s_quotes && !escape {
                     in_d_quotes = !in_d_quotes;
                 } else {
                     current.push(char);
+                    escape = false;
+                }
+            }
+            '\\' => {
+                if in_s_quotes {
+                    current.push(char);
+                } else {
+                    escape = true;
                 }
             }
             ' ' => {
-                if !in_s_quotes && !in_d_quotes {
+                if !in_s_quotes && !in_d_quotes && !escape {
                     if !current.is_empty() {
                         result.push(current.clone());
                         current.clear();
                     }
                 } else {
                     current.push(char);
+                    escape = false;
                 }
             }
-            _ => current.push(char),
+            _ => {current.push(char);
+                escape = false;
+            }
         }
     }
 
