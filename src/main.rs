@@ -11,14 +11,17 @@ fn input() -> String {
     io::stdin().read_line(&mut input).unwrap();
 
     loop {
-        let mut input_end = false;
-
+        let mut in_s_quotes = false;
+        let mut in_d_quotes = false;
         for char in input.chars() {
-            if char == '\'' {
-                input_end = !input_end;
+            if char == '\'' && !in_d_quotes {
+                in_s_quotes = !in_s_quotes;
+            }
+            if char == '"' && !in_s_quotes {
+                in_d_quotes = !in_d_quotes
             }
         }
-        if !input_end {
+        if !in_s_quotes && !in_d_quotes {
             break;
         }
         print!("> ");
@@ -38,11 +41,15 @@ fn parse_input(input: String) -> (String, Vec<String>) {
             '\'' => {
                 if !in_d_quotes {
                     in_s_quotes = !in_s_quotes;
+                } else {
+                    current.push(char);
                 }
             }
             '"' => {
                 if !in_s_quotes {
                     in_d_quotes = !in_d_quotes;
+                } else {
+                    current.push(char);
                 }
             }
             ' ' => {
