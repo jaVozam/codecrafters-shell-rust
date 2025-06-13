@@ -64,6 +64,8 @@ fn parse_input(input: String) -> (String, Vec<String>) {
                 } else if in_d_quotes && !escape {
                     current.push(char);
                     escape = true;
+                } else if escape {
+                    escape = false;
                 } else {
                     escape = true;
                 }
