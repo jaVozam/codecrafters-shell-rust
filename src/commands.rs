@@ -61,7 +61,7 @@ fn cmd_cd(args: &Vec<String>) {
     match env::set_current_dir(new_dir) {
         Ok(_) => {}
         Err(_) => {
-            println!("{}: no such file or directory", path)
+            println!("cd: {}: no such file or directory", path)
         }
     };
 }
