@@ -1,6 +1,5 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::thread::current;
 
 mod commands;
 
@@ -52,6 +51,9 @@ fn parse_input(input: String) -> (String, Vec<String>) {
                 if !in_s_quotes && !escape {
                     in_d_quotes = !in_d_quotes;
                 } else {
+                    if escape && in_d_quotes {
+                        current.pop();
+                    }
                     current.push(char);
                     escape = false;
                 }
