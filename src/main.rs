@@ -59,7 +59,7 @@ fn parse_input(input: String) -> (String, Vec<String>) {
             '\\' => {
                 if in_s_quotes {
                     current.push(char);
-                } else if in_d_quotes {
+                } else if in_d_quotes && !escape {
                     current.push(char);
                     escape = true;
                 } else {
