@@ -15,7 +15,7 @@ fn cmd_type(args: &Vec<String>, builtin: &[&str]) {
             continue;
         }
 
-        if let Ok(path_var) = env::var("path") {
+        if let Ok(path_var) = env::var("PATH") {
             let path_entries = env::split_paths(&path_var);
 
             for dir in path_entries {
