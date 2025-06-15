@@ -135,10 +135,10 @@ fn append_to_file(path: &String, value: String) -> std::io::Result<()> {
 
 fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
     if output_conf.std_out != "" {
-        append_to_file(&output_conf.std_out, "".to_string()).unwrap();
+        write_to_file(&output_conf.std_out, "".to_string()).unwrap();
     }
     if output_conf.std_err != "" {
-        append_to_file(&output_conf.std_err, "".to_string()).unwrap();
+        write_to_file(&output_conf.std_err, "".to_string()).unwrap();
     }
     for output in outputs {
         match output {
