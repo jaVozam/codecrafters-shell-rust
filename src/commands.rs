@@ -92,8 +92,6 @@ fn cmd_run(cmd: &str, args: &Vec<String>) -> Vec<Option<OutputMsg>> {
     let mut command = std::process::Command::new(cmd);
     command.args(args);
 
-    let result: Vec<Option<OutputMsg>> = Vec::new();
-
     match command.output() {
         Ok(output) => {
             let mut result = Vec::new();
@@ -107,12 +105,13 @@ fn cmd_run(cmd: &str, args: &Vec<String>) -> Vec<Option<OutputMsg>> {
             if !stderr.is_empty() {
                 result.push(Some(err(stderr)));
             }
+
+            result
         }
         Err(_) => {
-            return vec![Some(err(format!("{}: command not found", cmd)))];
+            vec![Some(err(format!("{}: command not found", cmd)))]
         }
     }
-    return result;
 }
 
 fn write_to_file(path: &String, value: String) -> std::io::Result<()> {
