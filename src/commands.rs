@@ -151,7 +151,7 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
                         write_to_file(&output_conf.std_out, value.message).unwrap();
                     }
                     OutputMode::FileAppend => {
-                        append_to_file(&output_conf.std_out, value.message).unwrap();
+                        append_to_file(&output_conf.std_out, value.message + "\n").unwrap();
                     }
                 },
                 OutputMsgType::StdErr => match output_conf.std_err_mode {
