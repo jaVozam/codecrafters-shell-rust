@@ -88,11 +88,11 @@ fn cmd_cd(args: &Vec<String>) -> Option<OutputMsg> {
     return None;
 }
 
-fn cmd_run(cmd: &str, args: &Vec<String>) -> Option<Vec<OutputMsg>> {
+fn cmd_run(cmd: &str, args: &Vec<String>) -> Vec<Option<OutputMsg>> {
     let mut command = std::process::Command::new(cmd);
     command.args(args);
 
-    let mut result: Vec<OutputMsg> = Vec::new();
+    let result: Vec<Option<OutputMsg>> = Vec::new();
 
     match command.output() {
         Ok(output) => {
@@ -100,19 +100,19 @@ fn cmd_run(cmd: &str, args: &Vec<String>) -> Option<Vec<OutputMsg>> {
 
             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if !stdout.is_empty() {
-                result.push(msg(stdout));
+                result.push(Some(msg(stdout)));
             }
 
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             if !stderr.is_empty() {
-                result.push(err(stderr));
+                result.push(Some(err(stderr)));
             }
         }
         Err(_) => {
-            return Some(vec![err(format!("{}: command not found", cmd))]);
+            return vec![Some(err(format!("{}: command not found", cmd)))];
         }
     }
-    return Some(result);
+    return result;
 }
 
 fn write_to_file(path: &String, value: String) -> std::io::Result<()> {
@@ -186,7 +186,12 @@ pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &[&str], output_c
         "cd" => {
             outputs.push(cmd_cd(args));
         }
-        _ => outputs.push(cmd_run(cmd, args)),
+        _ => {
+            let output = cmd_run(cmd, args);
+            for value in output {
+                outputs.push(value);
+            } 
+        },
     }
 
     output_handler(outputs, output_conf);
