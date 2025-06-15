@@ -139,12 +139,6 @@ fn create_file_if_not_exist(path: &str) -> std::io::Result<()> {
 }
 
 fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
-    if output_conf.std_out != "" {
-        create_file_if_not_exist(output_conf.std_out.as_str()).unwrap();
-    }
-    if output_conf.std_err != "" {
-        create_file_if_not_exist(output_conf.std_err.as_str()).unwrap();
-    }
     for output in outputs {
         match output {
             Some(value) => match value.msg_type {
@@ -173,6 +167,12 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
             },
             None => {}
         }
+        if output_conf.std_out != "" {
+            create_file_if_not_exist(output_conf.std_out.as_str()).unwrap();
+        }
+        if output_conf.std_err != "" {
+            create_file_if_not_exist(output_conf.std_err.as_str()).unwrap();
+        }
     }
 }
 
@@ -200,8 +200,8 @@ pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &[&str], output_c
             let output = cmd_run(cmd, args);
             for value in output {
                 outputs.push(value);
-            } 
-        },
+            }
+        }
     }
 
     output_handler(outputs, output_conf);
