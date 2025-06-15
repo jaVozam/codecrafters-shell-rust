@@ -126,17 +126,26 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
             Some(value) => match value.msg_type {
                 OutputMsgType::StdOut => match output_conf.std_out_mode {
                     OutputMode::Default => {
+                        print!("here");
                         println!("{}", value.message);
                     }
-                    OutputMode::File => {write_to_file(&output_conf.std_out, value.message).unwrap();},
-                    OutputMode::FileAppend => {append_to_file(&output_conf.std_out, value.message).unwrap();},
+                    OutputMode::File => {
+                        write_to_file(&output_conf.std_out, value.message).unwrap();
+                    }
+                    OutputMode::FileAppend => {
+                        append_to_file(&output_conf.std_out, value.message).unwrap();
+                    }
                 },
                 OutputMsgType::StdErr => match output_conf.std_err_mode {
                     OutputMode::Default => {
                         eprintln!("{}", value.message);
                     }
-                    OutputMode::File => {write_to_file(&output_conf.std_err, value.message).unwrap();},
-                    OutputMode::FileAppend => {append_to_file(&output_conf.std_err, value.message).unwrap();},
+                    OutputMode::File => {
+                        write_to_file(&output_conf.std_err, value.message).unwrap();
+                    }
+                    OutputMode::FileAppend => {
+                        append_to_file(&output_conf.std_err, value.message).unwrap();
+                    }
                 },
             },
             None => {}

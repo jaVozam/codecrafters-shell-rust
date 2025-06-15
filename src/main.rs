@@ -168,7 +168,6 @@ fn main() {
             i += 1;
         }
         
-        println!("{}", output_conf.std_out);
         commands::command_handler(&cmd, &args, &builtin, output_conf);
     }
 }
