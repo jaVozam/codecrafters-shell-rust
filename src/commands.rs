@@ -88,17 +88,31 @@ fn cmd_cd(args: &Vec<String>) -> Option<OutputMsg> {
     return None;
 }
 
-fn cmd_run(cmd: &str, args: &Vec<String>) -> Option<OutputMsg> {
+fn cmd_run(cmd: &str, args: &Vec<String>) -> Option<Vec<OutputMsg>> {
     let mut command = std::process::Command::new(cmd);
     command.args(args);
 
-    match command.status() {
-        Ok(_) => {}
+    let mut result: Vec<OutputMsg> = Vec::new();
+
+    match command.output() {
+        Ok(output) => {
+            let mut result = Vec::new();
+
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !stdout.is_empty() {
+                result.push(msg(stdout));
+            }
+
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            if !stderr.is_empty() {
+                result.push(err(stderr));
+            }
+        }
         Err(_) => {
-            return Some(err(format!("{}: command not found", cmd)));
+            return Some(vec![err(format!("{}: command not found", cmd))]);
         }
     }
-    return None;
+    return Some(result);
 }
 
 fn write_to_file(path: &String, value: String) -> std::io::Result<()> {
@@ -126,7 +140,6 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
             Some(value) => match value.msg_type {
                 OutputMsgType::StdOut => match output_conf.std_out_mode {
                     OutputMode::Default => {
-                        print!("here");
                         println!("{}", value.message);
                     }
                     OutputMode::File => {
