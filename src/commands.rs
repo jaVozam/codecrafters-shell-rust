@@ -133,12 +133,13 @@ fn append_to_file(path: &String, value: String) -> std::io::Result<()> {
     Ok(())
 }
 
-fn create_file_if_not_exist(path: &str) -> std::io::Result<()> {
-    fs::OpenOptions::new().create_new(true).open(path)?;
-    Ok(())
-}
-
 fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
+    if output_conf.std_out != "" {
+        append_to_file(&output_conf.std_out, "".to_string()).unwrap();
+    }
+    if output_conf.std_err != "" {
+        append_to_file(&output_conf.std_err, "".to_string()).unwrap();
+    }
     for output in outputs {
         match output {
             Some(value) => match value.msg_type {
@@ -167,12 +168,6 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
             },
             None => {}
         }
-        if output_conf.std_out != "" {
-            create_file_if_not_exist(output_conf.std_out.as_str()).unwrap();
-        }
-        if output_conf.std_err != "" {
-            create_file_if_not_exist(output_conf.std_err.as_str()).unwrap();
-        }
     }
 }
 
@@ -200,8 +195,8 @@ pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &[&str], output_c
             let output = cmd_run(cmd, args);
             for value in output {
                 outputs.push(value);
-            }
-        }
+            } 
+        },
     }
 
     output_handler(outputs, output_conf);
