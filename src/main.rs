@@ -120,7 +120,8 @@ fn main() {
             std_err_mode: OutputMode::Default,
         };
 
-        for i in 0..args.len() {
+        let mut i = 0;
+        while i < args.len() {
             match args[i].as_str() {
                 "1>" | ">" => {
                     if i + 1 < args.len() {
@@ -164,6 +165,7 @@ fn main() {
                 }
                 _ => {}
             }
+            i += 1;
         }
 
         commands::command_handler(&cmd, &args, &builtin, output_conf);
