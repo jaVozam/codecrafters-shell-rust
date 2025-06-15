@@ -81,7 +81,7 @@ fn input() -> (String, Vec<String>) {
     }
 
     if result.is_empty() {
-        return ("".to_string(), vec!());
+        return ("".to_string(), vec![]);
     }
 
     let cmd = result.remove(0);
@@ -91,16 +91,81 @@ fn input() -> (String, Vec<String>) {
     return (cmd, args);
 }
 
+enum OutputMode {
+    Default,
+    File,
+    FileAppend
+}
+
+struct OutputConf {
+    std_out: String,
+    std_out_mode: OutputMode,
+    std_err: String,
+    std_err_mode: OutputMode,
+}
+
 fn main() {
     loop {
         let builtin = ["echo", "exit", "type", "pwd", "cd"];
 
-        let (cmd, args) = input();
-
+        let (cmd, mut args) = input();
         if cmd == "" {
             continue;
         }
 
-        commands::command_handler(&cmd, &args, &builtin);
+        let mut output_conf = OutputConf {
+            std_out: "".to_string(),
+            std_out_mode: OutputMode::Default,
+            std_err: "".to_string(),
+            std_err_mode: OutputMode::Default,
+        };
+
+        for i in 0..args.len() {
+            match args[i].as_str() {
+                "1>" | ">" => {
+                    if i + 1 < args.len() {
+                        output_conf.std_out = args[i + 1].clone();
+                        output_conf.std_out_mode = OutputMode::File;
+                        args.remove(i + 1);
+                    } else {
+                        eprintln!("syntax error");
+                    }
+                    args.remove(i);
+                }
+                "2>" => {
+                    if i + 1 < args.len() {
+                        output_conf.std_err = args[i + 1].clone();
+                        output_conf.std_err_mode = OutputMode::File;
+                        args.remove(i + 1);
+                    } else {
+                        eprintln!("syntax error");
+                    }
+                    args.remove(i);
+                }
+                "1>>" | ">>" => {
+                    if i + 1 < args.len() {
+                        output_conf.std_out = args[i + 1].clone();
+                        output_conf.std_out_mode = OutputMode::FileAppend;
+                        args.remove(i + 1);
+                    } else {
+                        eprintln!("syntax error");
+                    }
+                    args.remove(i);
+                }
+                "2>>" => {
+                    if i + 1 < args.len() {
+                        output_conf.std_err = args[i + 1].clone();
+                        output_conf.std_err_mode = OutputMode::FileAppend;
+                        args.remove(i + 1);
+                    } else {
+                        eprintln!("syntax error");
+                    }
+                    args.remove(i);
+                }
+                _ => {}
+            }
+        }
+
+        commands::command_handler(&cmd, &args, &builtin, output_conf);
     }
 }
