@@ -148,7 +148,7 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
                         println!("{}", value.message);
                     }
                     OutputMode::File => {
-                        write_to_file(&output_conf.std_out, value.message).unwrap();
+                        write_to_file(&output_conf.std_out, value.message + "\n").unwrap();
                     }
                     OutputMode::FileAppend => {
                         append_to_file(&output_conf.std_out, value.message + "\n").unwrap();
@@ -159,10 +159,10 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
                         eprintln!("{}", value.message);
                     }
                     OutputMode::File => {
-                        write_to_file(&output_conf.std_err, value.message).unwrap();
+                        write_to_file(&output_conf.std_err, value.message + "\n").unwrap();
                     }
                     OutputMode::FileAppend => {
-                        append_to_file(&output_conf.std_err, value.message).unwrap();
+                        append_to_file(&output_conf.std_err, value.message + "\n").unwrap();
                     }
                 },
             },
