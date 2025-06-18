@@ -24,7 +24,7 @@ impl Completer for ShellCompleter {
 
         for completion in completions {
             if completion.starts_with(line) {
-                candidates.push(completion);
+                candidates.push(completion + " ");
             }
         }
 
