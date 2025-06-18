@@ -2,8 +2,10 @@ use std::env;
 use std::fs;
 use std::io::Write;
 
-use crate::OutputConf;
-use crate::OutputMode;
+use crate::input;
+
+use input::OutputMode;
+use input:: OutputConf;
 
 enum OutputMsgType {
     StdOut,
@@ -32,12 +34,12 @@ fn cmd_echo(args: &Vec<String>) -> Option<OutputMsg> {
     return Some(msg(args.join(" ")));
 }
 
-fn cmd_type(arg: &String, builtin: &[&str]) -> Option<OutputMsg> {
+fn cmd_type(arg: &String, builtin: &Vec<String>) -> Option<OutputMsg> {
     if arg.is_empty() {
         return None;
     }
 
-    if builtin.contains(&arg.as_str()) {
+    if builtin.contains(&arg) {
         return Some(msg(format!("{} is a shell builtin", arg)));
     }
 
@@ -171,7 +173,7 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
     }
 }
 
-pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &[&str], output_conf: OutputConf) {
+pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &Vec<String>, output_conf: OutputConf) {
     let mut outputs = Vec::new();
     match cmd {
         "exit" => {
@@ -182,7 +184,7 @@ pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &[&str], output_c
         }
         "type" => {
             for arg in args {
-                outputs.push(cmd_type(arg, &builtin));
+                outputs.push(cmd_type(arg, builtin));
             }
         }
         "pwd" => {
