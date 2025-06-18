@@ -1,13 +1,12 @@
-use rustyline::Helper;
 use rustyline::completion::Completer;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
 use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 use rustyline::Editor;
-
+use rustyline::Helper;
 
 struct ShellCompleter {
-    commands: Vec<String>
+    commands: Vec<String>,
 }
 
 impl Completer for ShellCompleter {
@@ -19,12 +18,11 @@ impl Completer for ShellCompleter {
         _pos: usize,
         _ctx: &rustyline::Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
-        let completions = self.commands.clone();
         let mut candidates = Vec::new();
 
-        for completion in completions {
+        for completion in &self.commands {
             if completion.starts_with(line) {
-                candidates.push(completion + " ");
+                candidates.push(format!("{} ", completion));
             }
         }
 
@@ -46,27 +44,65 @@ impl Hinter for ShellCompleter {
     type Hint = String;
 }
 pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
+    let mut executables = Vec::new();
+
+    if let Ok(path_var) = std::env::var("PATH") {
+        let path_entries = std::env::split_paths(&path_var);
+
+        for dir in path_entries {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+
+                    if path.is_file() {
+                        #[cfg(unix)]
+                        {
+                            use std::os::unix::fs::PermissionsExt;
+                            if let Ok(metadata) = path.metadata() {
+                                if metadata.permissions().mode() & 0o111 != 0 {
+                                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                                        executables.push(name.to_string());
+                                    }
+                                }
+                            }
+                        }
+
+                        #[cfg(windows)]
+                        {
+                            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                                let ext = ext.to_ascii_lowercase();
+                                if ext == "exe" || ext == "bat" || ext == "cmd" {
+                                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                                        executables.push(name.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    executables.extend(builtin.clone());
     let completer = ShellCompleter {
-        commands: builtin.to_owned()
+        commands: executables,
     };
 
     // Create editor with completer
     let mut rl = Editor::new().expect("Failed to create rustyline Editor");
     rl.set_helper(Some(completer));
 
-
     let mut input = String::new();
     let mut result = Vec::new();
 
     loop {
-        // Show "$ " prompt for first line, then "> " for multiline continuation
         let prompt = if input.is_empty() { "$ " } else { "> " };
 
         let line = rl.readline(prompt).unwrap_or_else(|_| "".to_string());
         input.push_str(&line);
-        input.push('\n'); // keep newlines as part of input if you want multiline support
+        input.push('\n');
 
-        // Your existing parsing logic with input.trim()
         let mut current = String::new();
         let mut in_s_quotes = false;
         let mut in_d_quotes = false;
@@ -126,7 +162,6 @@ pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
             result.push(current);
         }
 
-        // If all quotes are balanced, break loop, else continue multiline input
         if !in_s_quotes && !in_d_quotes {
             break;
         }
@@ -155,7 +190,7 @@ pub struct OutputConf {
     pub std_err_mode: OutputMode,
 }
 
-pub fn redirection(mut args: Vec<String>) -> (Vec<String>, OutputConf){
+pub fn redirection(mut args: Vec<String>) -> (Vec<String>, OutputConf) {
     let mut output_conf = OutputConf {
         std_out: "".to_string(),
         std_out_mode: OutputMode::Default,
