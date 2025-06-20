@@ -23,11 +23,15 @@ impl Completer for ShellCompleter {
 
         for completion in &self.commands {
             if completion.starts_with(line) {
-                candidates.push(format!("{}", completion));
+                candidates.push(completion.clone());
             }
         }
 
         candidates.sort();
+
+        if candidates.len() == 1{
+            candidates[0].push(' ');
+        }
 
         Ok((0, candidates))
     }
