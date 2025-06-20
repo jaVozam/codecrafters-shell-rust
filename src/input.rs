@@ -27,6 +27,8 @@ impl Completer for ShellCompleter {
             }
         }
 
+        candidates.sort();
+
         Ok((0, candidates))
     }
 }
