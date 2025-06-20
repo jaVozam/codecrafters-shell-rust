@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use rustyline::completion::Completer;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
@@ -7,7 +8,7 @@ use rustyline::Editor;
 use rustyline::Helper;
 
 struct ShellCompleter {
-    commands: Vec<String>,
+    commands: HashSet<String>,
 }
 
 impl Completer for ShellCompleter {
@@ -51,7 +52,7 @@ impl Hinter for ShellCompleter {
     type Hint = String;
 }
 pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
-    let mut executables = Vec::new();
+    let mut executables = HashSet::new();
 
     if let Ok(path_var) = std::env::var("PATH") {
         let path_entries = std::env::split_paths(&path_var);
@@ -68,7 +69,7 @@ pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
                             if let Ok(metadata) = path.metadata() {
                                 if metadata.permissions().mode() & 0o111 != 0 {
                                     if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                                        executables.push(name.to_string());
+                                        executables.insert(name.to_string());
                                     }
                                 }
                             }
