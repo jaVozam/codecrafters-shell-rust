@@ -23,7 +23,7 @@ impl Completer for ShellCompleter {
 
         for completion in &self.commands {
             if completion.starts_with(line) {
-                candidates.push(format!("{} ", completion));
+                candidates.push(format!("{}", completion));
             }
         }
 
