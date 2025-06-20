@@ -1,6 +1,7 @@
 use rustyline::completion::Completer;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
+use rustyline::history::DefaultHistory;
 use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 use rustyline::Editor;
 use rustyline::Helper;
@@ -89,8 +90,9 @@ pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
         commands: executables,
     };
 
-    // Create editor with completer
-    let mut rl = Editor::new().expect("Failed to create rustyline Editor");
+    let config = rustyline::Config::builder().completion_type(rustyline::CompletionType::List).build();
+
+    let mut rl = Editor::<ShellCompleter, DefaultHistory>::with_config(config).expect("Failed to create rustyline Editor");
     rl.set_helper(Some(completer));
 
     let mut input = String::new();
@@ -100,7 +102,7 @@ pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
         let prompt = if input.is_empty() { "$ " } else { "> " };
 
         let line = rl.readline(prompt).unwrap_or_else(|_| "".to_string());
-        input.push_str(&line);
+        input = line;
         input.push('\n');
 
         let mut current = String::new();
