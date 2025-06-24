@@ -211,13 +211,13 @@ use std::fs::File;
 
 pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
 
-    let mut children = Vec::new();
-    let mut prev_read: Option<i32> = None;
+    let mut children = vec![];
+    let mut prev_read_fd: Option<i32> = None;
 
-    for i in 0..cmds.len() {
-        let is_last = i == cmds.len() - 1;
+    for (i, (cmd, cmd_args)) in cmds.into_iter().zip(args.into_iter()).enumerate() {
+        let is_last = i == cmd_args.len() - 1;
 
-        // Create pipe for stdout if not last command
+        // Create a pipe for this command's output if it's not the last command
         let (read_fd, write_fd) = if !is_last {
             let (r, w) = pipe().expect("pipe failed");
             (Some(r), Some(w))
@@ -225,41 +225,42 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
             (None, None)
         };
 
-        let mut cmd = Command::new(&cmds[i]);
-        cmd.args(&args[i]);
+        let mut command = Command::new(cmd);
+        command.args(&cmd_args);
 
-        // Setup stdin
-        if let Some(fd) = prev_read {
+        // If there's a previous read_fd, use it as stdin
+        if let Some(fd) = prev_read_fd {
             let stdin = unsafe { Stdio::from(File::from_raw_fd(fd)) };
-            cmd.stdin(stdin);
+            command.stdin(stdin);
         }
 
-        // Setup stdout
-        if let Some(wfd) = write_fd {
-            let stdout = unsafe { Stdio::from(File::from_raw_fd(wfd)) };
-            cmd.stdout(stdout);
+        // If there's a write_fd, use it as stdout
+        if let Some(fd) = write_fd {
+            let stdout = unsafe { Stdio::from(File::from_raw_fd(fd)) };
+            command.stdout(stdout);
         }
 
-        // Spawn command
-        let child = cmd.spawn().expect(&format!("Failed to run {}", cmds[i]));
+        // Spawn the command
+        let child = command.spawn().expect("failed to spawn command");
         children.push(child);
 
-        // Close unused write end
-        if let Some(wfd) = write_fd {
-            close(wfd).expect("Failed to close write end");
+        // Close previous read_fd (we're done with it in the parent)
+        if let Some(fd) = prev_read_fd {
+            close(fd).expect("failed to close read_fd");
         }
 
-        // Close previous read end
-        if let Some(rfd) = prev_read {
-            close(rfd).expect("Failed to close previous read end");
+        // Close write_fd in the parent (the child owns it now)
+        if let Some(fd) = write_fd {
+            close(fd).expect("failed to close write_fd");
         }
 
-        // Next command's stdin will come from here
-        prev_read = read_fd;
+        // Pass the current read_fd to the next command
+        prev_read_fd = read_fd;
     }
 
+    // Wait for all children
     for mut child in children {
-        child.wait().expect("Failed to wait for child");
+        child.wait().expect("failed to wait on child");
     }
 }
 
