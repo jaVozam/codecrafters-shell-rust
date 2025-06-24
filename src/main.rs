@@ -19,10 +19,6 @@ fn main() {
 
         let (cmds, args) = input::split_inputs(input_lines);
 
-        for el in 0..cmds.len() {
-            println!("{}, {}", cmds[el], args[el].join(" "));
-        }
-        
         if cmds.len() == 1 {
             let (arg, output_conf) = input::redirection(args[0].clone());
             commands::command_handler(&cmds[0], &arg, &builtin, output_conf);
