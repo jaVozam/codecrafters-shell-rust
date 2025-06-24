@@ -4,8 +4,8 @@ use std::io::Write;
 
 use crate::input;
 
+use input::OutputConf;
 use input::OutputMode;
-use input:: OutputConf;
 
 enum OutputMsgType {
     StdOut,
@@ -173,7 +173,12 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
     }
 }
 
-pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &Vec<String>, output_conf: OutputConf) {
+pub fn command_handler(
+    cmd: &str,
+    args: &Vec<String>,
+    builtin: &Vec<String>,
+    output_conf: OutputConf,
+) {
     let mut outputs = Vec::new();
     match cmd {
         "exit" => {
@@ -197,16 +202,16 @@ pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &Vec<String>, out
             let output = cmd_run(cmd, args);
             for value in output {
                 outputs.push(value);
-            } 
-        },
+            }
+        }
     }
 
     output_handler(outputs, output_conf);
 }
 
+use nix::unistd::{close, pipe};
+use std::os::unix::io::FromRawFd;
 use std::process::{Command, Stdio};
-use nix::unistd::{pipe, close};
-use std::os::unix::io::{FromRawFd};
 
 pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
     assert_eq!(cmds.len(), args.len(), "Each command must have arguments");
@@ -225,8 +230,15 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
         };
 
         let mut cmd = Command::new(&cmds[i]);
-        if !args[i].is_empty() {
-            cmd.args(&args[i]);
+
+        let filtered_args: Vec<String> = args[i]
+            .iter()
+            .filter(|arg| !arg.is_empty())
+            .cloned()
+            .collect();
+
+        if !filtered_args.is_empty() {
+            cmd.args(&filtered_args);
         }
 
         if let Some(fd) = prev_read {
