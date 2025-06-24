@@ -208,6 +208,7 @@ use std::process::{Command, Stdio};
 use nix::unistd::{pipe, close};
 use std::os::unix::io::{FromRawFd};
 use std::fs::File;
+
 pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
     assert_eq!(cmds.len(), args.len(), "Each command must have arguments");
 
@@ -230,13 +231,13 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
 
         // Setup stdin
         if let Some(fd) = prev_read {
-            let stdin = unsafe { Stdio::from(File::from_raw_fd(fd)) };
+            let stdin = unsafe { Stdio::from_raw_fd(fd) };
             cmd.stdin(stdin);
         }
 
         // Setup stdout
         if let Some(wfd) = write_fd {
-            let stdout = unsafe { Stdio::from(File::from_raw_fd(wfd)) };
+            let stdout = unsafe { Stdio::from_raw_fd(wfd) };
             cmd.stdout(stdout);
         }
 
