@@ -188,7 +188,7 @@ pub fn input(builtin: &Vec<String>) -> Vec<String> {
 
 pub fn split_inputs(mut input_lines: Vec<String>) -> (Vec<String>, Vec<Vec<String>>) {
     let mut cmds: Vec<String> = Vec::new();
-    let mut cmd_args = Vec::new();
+    let mut cmd_args = vec![];
     let mut args = Vec::new();
 
     cmds.push(input_lines.remove(0));
@@ -199,7 +199,7 @@ pub fn split_inputs(mut input_lines: Vec<String>) -> (Vec<String>, Vec<Vec<Strin
         match el.as_str() {
             "|" => {
                 args.push(cmd_args.clone());
-                cmd_args.clear();
+                cmd_args = vec![];
                 last_el_is_pipe = true;
             }
             _ => {
