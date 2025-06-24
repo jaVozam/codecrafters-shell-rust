@@ -207,7 +207,6 @@ pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &Vec<String>, out
 use std::process::{Command, Stdio};
 use nix::unistd::{pipe, close};
 use std::os::unix::io::{FromRawFd};
-use std::fs::File;
 
 pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
     assert_eq!(cmds.len(), args.len(), "Each command must have arguments");
@@ -218,7 +217,6 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
     for i in 0..cmds.len() {
         let is_last = i == cmds.len() - 1;
 
-        // Create pipe for stdout if not last command
         let (read_fd, write_fd) = if !is_last {
             let (r, w) = pipe().expect("pipe failed");
             (Some(r), Some(w))
@@ -227,35 +225,31 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
         };
 
         let mut cmd = Command::new(&cmds[i]);
-        cmd.args(&args[i]);
+        if !args[i].is_empty() {
+            cmd.args(&args[i]);
+        }
 
-        // Setup stdin
         if let Some(fd) = prev_read {
             let stdin = unsafe { Stdio::from_raw_fd(fd) };
             cmd.stdin(stdin);
         }
 
-        // Setup stdout
         if let Some(wfd) = write_fd {
             let stdout = unsafe { Stdio::from_raw_fd(wfd) };
             cmd.stdout(stdout);
         }
 
-        // Spawn command
         let child = cmd.spawn().expect(&format!("Failed to run {}", cmds[i]));
         children.push(child);
 
-        // Close unused write end
         if let Some(wfd) = write_fd {
             close(wfd).expect("Failed to close write end");
         }
 
-        // Close previous read end
         if let Some(rfd) = prev_read {
             close(rfd).expect("Failed to close previous read end");
         }
 
-        // Next command's stdin will come from here
         prev_read = read_fd;
     }
 
