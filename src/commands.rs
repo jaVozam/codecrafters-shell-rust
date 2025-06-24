@@ -210,7 +210,6 @@ use std::os::unix::io::{FromRawFd};
 use std::fs::File;
 
 pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
-    assert_eq!(cmds.len(), args.len(), "Each command must have a corresponding args vector");
 
     let mut children = vec![];
     let mut prev_read_fd: Option<i32> = None;
