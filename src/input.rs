@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use rustyline::completion::Completer;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
@@ -6,6 +5,7 @@ use rustyline::history::DefaultHistory;
 use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 use rustyline::Editor;
 use rustyline::Helper;
+use std::collections::HashSet;
 
 struct ShellCompleter {
     commands: HashSet<String>,
@@ -30,7 +30,7 @@ impl Completer for ShellCompleter {
 
         candidates.sort();
 
-        if candidates.len() == 1{
+        if candidates.len() == 1 {
             candidates[0].push(' ');
         }
 
@@ -51,7 +51,7 @@ impl Highlighter for ShellCompleter {}
 impl Hinter for ShellCompleter {
     type Hint = String;
 }
-pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
+pub fn input(builtin: &Vec<String>) -> Vec<String> {
     let mut executables = HashSet::new();
 
     if let Ok(path_var) = std::env::var("PATH") {
@@ -91,32 +91,39 @@ pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
             }
         }
     }
-    
+
     executables.extend(builtin.clone());
     let completer = ShellCompleter {
         commands: executables,
     };
 
-    let config = rustyline::Config::builder().completion_type(rustyline::CompletionType::List).build();
+    let config = rustyline::Config::builder()
+        .completion_type(rustyline::CompletionType::List)
+        .build();
 
-    let mut rl = Editor::<ShellCompleter, DefaultHistory>::with_config(config).expect("Failed to create rustyline Editor");
+    let mut rl = Editor::<ShellCompleter, DefaultHistory>::with_config(config)
+        .expect("Failed to create rustyline Editor");
     rl.set_helper(Some(completer));
 
     let mut input = String::new();
     let mut result = Vec::new();
 
+    let mut in_s_quotes = false;
+    let mut in_d_quotes = false;
     loop {
         let prompt = if input.is_empty() { "$ " } else { "> " };
 
         let line = rl.readline(prompt).unwrap_or_else(|_| "".to_string());
-        input = line;
-        input.push('\n');
+
+        if !input.is_empty() {
+            input.clear();
+            input.push('\n');
+        }
+        input += line.trim();
 
         let mut current = String::new();
-        let mut in_s_quotes = false;
-        let mut in_d_quotes = false;
         let mut escape = false;
-        for char in input.trim().chars() {
+        for char in input.chars() {
             match char {
                 '\'' => {
                     if !in_d_quotes && !escape {
@@ -176,14 +183,45 @@ pub fn input(builtin: &Vec<String>) -> (String, Vec<String>) {
         }
     }
 
-    if result.is_empty() {
-        return ("".to_string(), vec![]);
+    result
+}
+
+pub fn split_inputs(mut input_lines: Vec<String>) -> (Vec<String>, Vec<Vec<String>>) {
+    let mut cmds: Vec<String> = Vec::new();
+    let mut cmd_args = Vec::new();
+    let mut args = Vec::new();
+
+    cmds.push(input_lines.remove(0));
+
+    let mut last_el_is_pipe = false;
+
+    for el in input_lines {
+        match el.as_str() {
+            "|" => {
+                args.push(cmd_args.clone());
+                cmd_args.clear();
+                last_el_is_pipe = true;
+            }
+            _ => {
+                if last_el_is_pipe {
+                    cmds.push(el);
+                    last_el_is_pipe = false;
+                } else {
+                    cmd_args.push(el);
+                }
+            }
+        }
     }
 
-    let cmd = result.remove(0);
-    let args = result;
+    if !cmd_args.is_empty() {
+        args.push(cmd_args);
+    }
 
-    (cmd, args)
+    if args.is_empty() {
+        args.push(vec![])
+    }
+
+    (cmds, args)
 }
 
 pub enum OutputMode {

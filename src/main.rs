@@ -11,13 +11,21 @@ fn main() {
         .collect::<Vec<String>>();
 
     loop {
-        let (cmd, args) = input::input(&builtin);
-        if cmd == "" {
+        let input_lines = input::input(&builtin);
+
+        if input_lines.is_empty(){
             continue;
         }
 
-        let (args, output_conf) = input::redirection(args);
+        let (cmds, args) = input::split_inputs(input_lines);
+        
+        if cmds.len() == 1 {
+            let (arg, output_conf) = input::redirection(args[0].clone());
+            commands::command_handler(&cmds[0], &arg, &builtin, output_conf);
+        }
+        else {
+            commands::run_pipeline(cmds, args);
+        }
 
-        commands::command_handler(&cmd, &args, &builtin, output_conf);
     }
 }

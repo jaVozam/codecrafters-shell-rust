@@ -203,3 +203,65 @@ pub fn command_handler(cmd: &str, args: &Vec<String>, builtin: &Vec<String>, out
 
     output_handler(outputs, output_conf);
 }
+
+use std::process::{Command, Stdio};
+use nix::unistd::{pipe, close};
+use std::os::unix::io::{FromRawFd};
+use std::fs::File;
+
+pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
+    assert_eq!(cmds.len(), args.len(), "Each command must have a corresponding args vector");
+
+    let mut children = vec![];
+    let mut prev_read_fd: Option<i32> = None;
+
+    for (i, (cmd, cmd_args)) in cmds.into_iter().zip(args.into_iter()).enumerate() {
+        let is_last = i == cmd_args.len() - 1;
+
+        // Create a pipe for this command's output if it's not the last command
+        let (read_fd, write_fd) = if !is_last {
+            let (r, w) = pipe().expect("pipe failed");
+            (Some(r), Some(w))
+        } else {
+            (None, None)
+        };
+
+        let mut command = Command::new(cmd);
+        command.args(&cmd_args);
+
+        // If there's a previous read_fd, use it as stdin
+        if let Some(fd) = prev_read_fd {
+            let stdin = unsafe { Stdio::from(File::from_raw_fd(fd)) };
+            command.stdin(stdin);
+        }
+
+        // If there's a write_fd, use it as stdout
+        if let Some(fd) = write_fd {
+            let stdout = unsafe { Stdio::from(File::from_raw_fd(fd)) };
+            command.stdout(stdout);
+        }
+
+        // Spawn the command
+        let child = command.spawn().expect("failed to spawn command");
+        children.push(child);
+
+        // Close previous read_fd (we're done with it in the parent)
+        if let Some(fd) = prev_read_fd {
+            close(fd).expect("failed to close read_fd");
+        }
+
+        // Close write_fd in the parent (the child owns it now)
+        if let Some(fd) = write_fd {
+            close(fd).expect("failed to close write_fd");
+        }
+
+        // Pass the current read_fd to the next command
+        prev_read_fd = read_fd;
+    }
+
+    // Wait for all children
+    for mut child in children {
+        child.wait().expect("failed to wait on child");
+    }
+}
+
