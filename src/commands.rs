@@ -173,12 +173,7 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
     }
 }
 
-pub fn command_handler(
-    cmd: &str,
-    args: &Vec<String>,
-    builtin: &Vec<String>,
-    output_conf: OutputConf,
-) {
+fn run_builtin(cmd: &str, args: &Vec<String>, builtin: &Vec<String>) -> Vec<Option<OutputMsg>> {
     let mut outputs = Vec::new();
     match cmd {
         "exit" => {
@@ -198,26 +193,53 @@ pub fn command_handler(
         "cd" => {
             outputs.push(cmd_cd(args));
         }
-        _ => {
-            let output = cmd_run(cmd, args);
-            for value in output {
-                outputs.push(value);
-            }
+        _ => {}
+    }
+
+    outputs
+}
+
+use std::os::unix::io::RawFd;
+
+fn write_outputs_to_fd(outputs: Vec<Option<OutputMsg>>, out_fd: RawFd) {
+    let mut writer = unsafe { std::fs::File::from_raw_fd(out_fd) };
+
+    for output in outputs {
+        if let Some(msg) = output {
+            writeln!(writer, "{}", msg.message).unwrap();
+        }
+    }
+}
+
+pub fn command_handler(
+    cmd: &str,
+    args: &Vec<String>,
+    builtin: &Vec<String>,
+    output_conf: OutputConf,
+) {
+    let mut outputs = Vec::new();
+
+    if builtin.contains(&cmd.to_string()) {
+        outputs = run_builtin(cmd, args, builtin);
+    } else {
+        let output = cmd_run(cmd, args);
+        for value in output {
+            outputs.push(value);
         }
     }
 
     output_handler(outputs, output_conf);
 }
 
-use nix::unistd::{close, pipe};
-use std::os::unix::io::FromRawFd;
+use nix::unistd::{close, dup2, pipe};
+use std::os::unix::io::{FromRawFd};
 use std::process::{Command, Stdio};
 
-pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
+pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<String>) {
     assert_eq!(cmds.len(), args.len(), "Each command must have arguments");
 
     let mut children = Vec::new();
-    let mut prev_read: Option<i32> = None;
+    let mut prev_read: Option<RawFd> = None;
 
     for i in 0..cmds.len() {
         let is_last = i == cmds.len() - 1;
@@ -229,37 +251,47 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>) {
             (None, None)
         };
 
-        let mut cmd = Command::new(&cmds[i]);
-
+        let cmd_name = &cmds[i];
         let filtered_args: Vec<String> = args[i]
             .iter()
             .filter(|arg| !arg.is_empty())
             .cloned()
             .collect();
 
-        if !filtered_args.is_empty() {
-            cmd.args(&filtered_args);
-        }
+        if builtin.contains(cmd_name) {
+            if let Some(wfd) = write_fd {
+                let output = run_builtin(cmd_name, &filtered_args, &builtin);
+                write_outputs_to_fd(output, wfd);
+                close(wfd).ok();
+            }
+        } else {
+            // External command
+            let mut cmd = Command::new(cmd_name);
 
-        if let Some(fd) = prev_read {
-            let stdin = unsafe { Stdio::from_raw_fd(fd) };
-            cmd.stdin(stdin);
+            if !filtered_args.is_empty() {
+                cmd.args(&filtered_args);
+            }
+
+            if let Some(fd) = prev_read {
+                let stdin = unsafe { Stdio::from_raw_fd(fd) };
+                cmd.stdin(stdin);
+            }
+
+            if let Some(wfd) = write_fd {
+                let stdout = unsafe { Stdio::from_raw_fd(wfd) };
+                cmd.stdout(stdout);
+            }
+
+            let child = cmd.spawn().expect(&format!("Failed to run {}", cmd_name));
+            children.push(child);
         }
 
         if let Some(wfd) = write_fd {
-            let stdout = unsafe { Stdio::from_raw_fd(wfd) };
-            cmd.stdout(stdout);
-        }
-
-        let child = cmd.spawn().expect(&format!("Failed to run {}", cmds[i]));
-        children.push(child);
-
-        if let Some(wfd) = write_fd {
-            close(wfd).expect("Failed to close write end");
+            close(wfd).ok();
         }
 
         if let Some(rfd) = prev_read {
-            close(rfd).expect("Failed to close previous read end");
+            close(rfd).ok();
         }
 
         prev_read = read_fd;

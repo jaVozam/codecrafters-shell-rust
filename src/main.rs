@@ -24,7 +24,7 @@ fn main() {
             commands::command_handler(&cmds[0], &arg, &builtin, output_conf);
         }
         else {
-            commands::run_pipeline(cmds, args);
+            commands::run_pipeline(cmds, args, &builtin);
         }
 
     }
