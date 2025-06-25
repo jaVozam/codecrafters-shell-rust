@@ -211,33 +211,11 @@ fn write_outputs_to_fd(outputs: Vec<Option<OutputMsg>>, out_fd: RawFd) {
     }
 }
 
-pub fn command_handler(
-    cmd: &str,
-    args: &Vec<String>,
-    builtin: &Vec<String>,
-    output_conf: OutputConf,
-) {
-    let mut outputs = Vec::new();
-
-    if builtin.contains(&cmd.to_string()) {
-        outputs = run_builtin(cmd, args, builtin);
-    } else {
-        let output = cmd_run(cmd, args);
-        for value in output {
-            outputs.push(value);
-        }
-    }
-
-    output_handler(outputs, output_conf);
-}
-
-use nix::unistd::{close, dup2, pipe};
-use std::os::unix::io::{FromRawFd};
+use nix::unistd::{close, pipe};
+use std::os::unix::io::FromRawFd;
 use std::process::{Command, Stdio};
 
 pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<String>) {
-    assert_eq!(cmds.len(), args.len(), "Each command must have arguments");
-
     let mut children = Vec::new();
     let mut prev_read: Option<RawFd> = None;
 
@@ -259,10 +237,17 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<Str
             .collect();
 
         if builtin.contains(cmd_name) {
+            let output = run_builtin(cmd_name, &filtered_args, &builtin);
             if let Some(wfd) = write_fd {
-                let output = run_builtin(cmd_name, &filtered_args, &builtin);
                 write_outputs_to_fd(output, wfd);
                 close(wfd).ok();
+            } else {
+                // last builtin command: print output to stdout
+                for out in output {
+                    if let Some(msg) = out {
+                        println!("{}", msg.message);
+                    }
+                }
             }
         } else {
             // External command
@@ -300,4 +285,24 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<Str
     for mut child in children {
         child.wait().expect("Failed to wait for child");
     }
+}
+
+pub fn command_handler(
+    cmd: &str,
+    args: &Vec<String>,
+    builtin: &Vec<String>,
+    output_conf: OutputConf,
+) {
+    let mut outputs = Vec::new();
+
+    if builtin.contains(&cmd.to_string()) {
+        outputs = run_builtin(cmd, args, builtin);
+    } else {
+        let output = cmd_run(cmd, args);
+        for value in output {
+            outputs.push(value);
+        }
+    }
+
+    output_handler(outputs, output_conf);
 }
