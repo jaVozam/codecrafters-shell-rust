@@ -97,18 +97,22 @@ use std::fmt::Write as FmtWrite;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader};
 
-fn delete_first_line(filename: &str) -> std::io::Result<()> {
+fn delete_header(filename: &str) -> std::io::Result<()> {
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
 
-    let lines = reader.lines().skip(1).collect::<Result<Vec<_>, _>>()?;
+    let lines: Vec<String> = reader
+        .lines()
+        .filter_map(Result::ok)
+        .filter(|line| line.trim() != "#V2")
+        .collect();
 
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .open(filename)?;
 
-    for line in lines.iter() {
+    for line in lines {
         writeln!(file, "{}", line)?;
     }
 
@@ -131,11 +135,11 @@ fn cmd_history(
             return None;
         } else if args[0] == "-w" {
             rl.save_history(&args[1]).ok();
-            delete_first_line(&args[1]).unwrap();
+            delete_header(&args[1]).unwrap();
             return None;
         } else if args[0] == "-a" {
             rl.append_history(&args[1]).ok();
-            delete_first_line(&args[1]).unwrap();
+            delete_header(&args[1]).unwrap();
             return None;
         } else {
             n = args[0].parse().expect("Not a valid number");
