@@ -3,9 +3,12 @@ use std::fs;
 use std::io::Write;
 
 use crate::input;
+use crate::ShellCompleter;
 
 use input::OutputConf;
 use input::OutputMode;
+use rustyline::history::DefaultHistory;
+use rustyline::Editor;
 
 enum OutputMsgType {
     StdOut,
@@ -88,6 +91,15 @@ fn cmd_cd(args: &Vec<String>) -> Option<OutputMsg> {
         Err(_) => return Some(err(format!("cd: {}: No such file or directory", path))),
     };
     return None;
+}
+use std::fmt::Write as FmtWrite;
+
+fn cmd_history(rl: &Editor<ShellCompleter, DefaultHistory>) -> Option<OutputMsg> {
+    let mut history = String::new();
+    for (i, entry) in rl.history().iter().enumerate() {
+        writeln!(&mut history, "{}: {}", i + 1, entry).unwrap();
+    }
+    Some(msg(history.trim_end().to_string()))
 }
 
 fn cmd_run(cmd: &str, args: &Vec<String>) -> Vec<Option<OutputMsg>> {
@@ -173,7 +185,7 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
     }
 }
 
-fn run_builtin(cmd: &str, args: &Vec<String>, builtin: &Vec<String>) -> Vec<Option<OutputMsg>> {
+fn run_builtin(cmd: &str, args: &Vec<String>, builtin: &Vec<String>, rl: &Editor<ShellCompleter, DefaultHistory>) -> Vec<Option<OutputMsg>> {
     let mut outputs = Vec::new();
     match cmd {
         "exit" => {
@@ -192,6 +204,9 @@ fn run_builtin(cmd: &str, args: &Vec<String>, builtin: &Vec<String>) -> Vec<Opti
         }
         "cd" => {
             outputs.push(cmd_cd(args));
+        }
+        "history" => {
+            outputs.push(cmd_history(rl));
         }
         _ => {}
     }
@@ -215,7 +230,7 @@ use nix::unistd::{close, pipe};
 use std::os::unix::io::FromRawFd;
 use std::process::{Command, Stdio};
 
-pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<String>) {
+pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<String>, rl: &Editor<ShellCompleter, DefaultHistory>) {
     let mut children = Vec::new();
     let mut prev_read: Option<RawFd> = None;
 
@@ -237,12 +252,11 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<Str
             .collect();
 
         if builtin.contains(cmd_name) {
-            let output = run_builtin(cmd_name, &filtered_args, &builtin);
+            let output = run_builtin(cmd_name, &filtered_args, &builtin, rl);
             if let Some(wfd) = write_fd {
                 write_outputs_to_fd(output, wfd);
                 close(wfd).ok();
             } else {
-                // last builtin command: print output to stdout
                 for out in output {
                     if let Some(msg) = out {
                         println!("{}", msg.message);
@@ -250,7 +264,6 @@ pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<Str
                 }
             }
         } else {
-            // External command
             let mut cmd = Command::new(cmd_name);
 
             if !filtered_args.is_empty() {
@@ -292,11 +305,12 @@ pub fn command_handler(
     args: &Vec<String>,
     builtin: &Vec<String>,
     output_conf: OutputConf,
+    rl: &Editor<ShellCompleter, DefaultHistory>
 ) {
     let mut outputs = Vec::new();
 
     if builtin.contains(&cmd.to_string()) {
-        outputs = run_builtin(cmd, args, builtin);
+        outputs = run_builtin(cmd, args, builtin, rl);
     } else {
         let output = cmd_run(cmd, args);
         for value in output {

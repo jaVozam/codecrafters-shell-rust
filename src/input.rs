@@ -1,57 +1,9 @@
-use rustyline::completion::Completer;
-use rustyline::highlight::Highlighter;
-use rustyline::hint::Hinter;
 use rustyline::history::DefaultHistory;
-use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 use rustyline::Editor;
-use rustyline::Helper;
 use std::collections::HashSet;
+use crate::ShellCompleter;
 
-struct ShellCompleter {
-    commands: HashSet<String>,
-}
-
-impl Completer for ShellCompleter {
-    type Candidate = String;
-
-    fn complete(
-        &self,
-        line: &str,
-        _pos: usize,
-        _ctx: &rustyline::Context<'_>,
-    ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
-        let mut candidates = Vec::new();
-
-        for completion in &self.commands {
-            if completion.starts_with(line) {
-                candidates.push(completion.clone());
-            }
-        }
-
-        candidates.sort();
-
-        if candidates.len() == 1 {
-            candidates[0].push(' ');
-        }
-
-        Ok((0, candidates))
-    }
-}
-
-impl Helper for ShellCompleter {}
-
-impl Validator for ShellCompleter {
-    fn validate(&self, _ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
-        Ok(ValidationResult::Valid(None))
-    }
-}
-
-impl Highlighter for ShellCompleter {}
-
-impl Hinter for ShellCompleter {
-    type Hint = String;
-}
-pub fn input(builtin: &Vec<String>) -> Vec<String> {
+pub fn get_executables() -> HashSet<String> {
     let mut executables = HashSet::new();
 
     if let Ok(path_var) = std::env::var("PATH") {
@@ -91,19 +43,10 @@ pub fn input(builtin: &Vec<String>) -> Vec<String> {
             }
         }
     }
+    executables
+}
 
-    executables.extend(builtin.clone());
-    let completer = ShellCompleter {
-        commands: executables,
-    };
-
-    let config = rustyline::Config::builder()
-        .completion_type(rustyline::CompletionType::List)
-        .build();
-
-    let mut rl = Editor::<ShellCompleter, DefaultHistory>::with_config(config)
-        .expect("Failed to create rustyline Editor");
-    rl.set_helper(Some(completer));
+pub fn input(rl: &mut Editor<ShellCompleter, DefaultHistory>) -> Vec<String> {
 
     let mut input = String::new();
     let mut result = Vec::new();
@@ -114,6 +57,10 @@ pub fn input(builtin: &Vec<String>) -> Vec<String> {
         let prompt = if input.is_empty() { "$ " } else { "> " };
 
         let line = rl.readline(prompt).unwrap_or_else(|_| "".to_string());
+
+        if !line.is_empty() {
+            rl.add_history_entry(&line).ok();
+        }
 
         if !input.is_empty() {
             input.clear();

@@ -4,16 +4,89 @@ use std::io::{self, Write};
 mod commands;
 mod input;
 
+
+use input::input;
+use rustyline::completion::Completer;
+use rustyline::highlight::Highlighter;
+use rustyline::hint::Hinter;
+use rustyline::history::DefaultHistory;
+use rustyline::validate::{ValidationContext, ValidationResult, Validator};
+use rustyline::Editor;
+use rustyline::Helper;
+use std::collections::HashSet;
+
+
+pub struct ShellCompleter {
+    commands: HashSet<String>,
+}
+
+impl Completer for ShellCompleter {
+    type Candidate = String;
+
+    fn complete(
+        &self,
+        line: &str,
+        _pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
+        let mut candidates = Vec::new();
+
+        for completion in &self.commands {
+            if completion.starts_with(line) {
+                candidates.push(completion.clone());
+            }
+        }
+
+        candidates.sort();
+
+        if candidates.len() == 1 {
+            candidates[0].push(' ');
+        }
+
+        Ok((0, candidates))
+    }
+}
+
+impl Helper for ShellCompleter {}
+
+impl Validator for ShellCompleter {
+    fn validate(&self, _ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
+        Ok(ValidationResult::Valid(None))
+    }
+}
+
+impl Highlighter for ShellCompleter {}
+
+impl Hinter for ShellCompleter {
+    type Hint = String;
+}
+
+
+
 fn main() {
-    let builtin = ["echo", "exit", "type", "pwd", "cd"]
+    let builtin = ["echo", "exit", "type", "pwd", "cd", "history"]
         .iter()
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
 
-    loop {
-        let input_lines = input::input(&builtin);
+    let mut executables = input::get_executables();
+    executables.extend(builtin.clone());
+    let completer = ShellCompleter {
+        commands: executables,
+    };
 
-        if input_lines.is_empty(){
+    let config = rustyline::Config::builder()
+        .completion_type(rustyline::CompletionType::List)
+        .build();
+
+    let mut rl = Editor::<ShellCompleter, DefaultHistory>::with_config(config)
+        .expect("Failed to create rustyline Editor");
+    rl.set_helper(Some(completer));
+
+    loop {
+        let input_lines = input::input(&mut rl);
+
+        if input_lines.is_empty() {
             continue;
         }
 
@@ -21,11 +94,9 @@ fn main() {
 
         if cmds.len() == 1 {
             let (arg, output_conf) = input::redirection(args[0].clone());
-            commands::command_handler(&cmds[0], &arg, &builtin, output_conf);
+            commands::command_handler(&cmds[0], &arg, &builtin, output_conf, &rl);
+        } else {
+            commands::run_pipeline(cmds, args, &builtin, &rl);
         }
-        else {
-            commands::run_pipeline(cmds, args, &builtin);
-        }
-
     }
 }
