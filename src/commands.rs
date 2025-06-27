@@ -119,7 +119,6 @@ fn delete_header(filename: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-
 fn cmd_history(
     rl: &mut Editor<ShellCompleter, DefaultHistory>,
     args: &Vec<String>,
@@ -246,6 +245,12 @@ fn run_builtin(
     let mut outputs = Vec::new();
     match cmd {
         "exit" => {
+            let histfile = std::env::var("HISTFILE").ok();
+
+            if let Some(path) = histfile {
+                rl.save_history(&path).ok();
+                delete_header(&path).unwrap();
+            }
             std::process::exit(0);
         }
         "echo" => {
