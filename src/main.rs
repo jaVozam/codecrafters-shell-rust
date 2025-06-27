@@ -4,7 +4,6 @@ use std::io::{self, Write};
 mod commands;
 mod input;
 
-
 use input::input;
 use rustyline::completion::Completer;
 use rustyline::highlight::Highlighter;
@@ -14,7 +13,6 @@ use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 use rustyline::Editor;
 use rustyline::Helper;
 use std::collections::HashSet;
-
 
 pub struct ShellCompleter {
     commands: HashSet<String>,
@@ -61,8 +59,6 @@ impl Hinter for ShellCompleter {
     type Hint = String;
 }
 
-
-
 fn main() {
     let builtin = ["echo", "exit", "type", "pwd", "cd", "history"]
         .iter()
@@ -82,6 +78,12 @@ fn main() {
     let mut rl = Editor::<ShellCompleter, DefaultHistory>::with_config(config)
         .expect("Failed to create rustyline Editor");
     rl.set_helper(Some(completer));
+
+    let histfile = std::env::var("HISTFILE").ok();
+    
+    if let Some(path) = histfile {
+        rl.load_history(&path).ok();
+    }
 
     loop {
         let input_lines = input::input(&mut rl);
