@@ -115,11 +115,12 @@ fn cmd_history(
             }
             return None;
         } else if args[0] == "-a" {
+            let saved_count = history_len - 1;
             let mut file = std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(&args[1]).unwrap();
-            for entry in rl.history().iter() {
+            for entry in rl.history().iter().skip(saved_count) {
                 writeln!(file, "{}", entry).ok();
             }
             return None;
