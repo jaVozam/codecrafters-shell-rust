@@ -97,7 +97,7 @@ use std::fmt::Write as FmtWrite;
 fn cmd_history(rl: &Editor<ShellCompleter, DefaultHistory>) -> Option<OutputMsg> {
     let mut history = String::new();
     for (i, entry) in rl.history().iter().enumerate() {
-        writeln!(&mut history, "{}: {}", i + 1, entry).unwrap();
+        writeln!(&mut history, "\t{}: {}", i + 1, entry).unwrap();
     }
     Some(msg(history.trim_end().to_string()))
 }
