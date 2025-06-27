@@ -115,7 +115,7 @@ fn cmd_history(
             }
             return None;
         } else if args[0] == "-a" {
-            let saved_count = history_len - 1;
+            let saved_count = history_len;
             let mut file = std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
