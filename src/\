@@ -94,19 +94,17 @@ fn cmd_cd(args: &Vec<String>) -> Option<OutputMsg> {
 }
 use std::fmt::Write as FmtWrite;
 
-fn cmd_history(
-    rl: &Editor<ShellCompleter, DefaultHistory>,
-    args: &Vec<String>,
-) -> Option<OutputMsg> {
+fn cmd_history(rl: &Editor<ShellCompleter, DefaultHistory>, args: Vec<String>) -> Option<OutputMsg> {
     let mut history = String::new();
 
     let history_len = rl.history().iter().count();
 
     let mut n: usize = history_len;
-    if !args.is_empty() {
-        n = args[0].parse().expect("Not a valid number");
+    if args.is_empty() {
+        
     }
 
+    let n: usize = args[0].parse().expect("Not a valid number");
     let start = if history_len > n { history_len - n } else { 0 };
 
     for (i, entry) in rl.history().iter().skip(start).enumerate() {
@@ -198,12 +196,7 @@ fn output_handler(outputs: Vec<Option<OutputMsg>>, output_conf: OutputConf) {
     }
 }
 
-fn run_builtin(
-    cmd: &str,
-    args: &Vec<String>,
-    builtin: &Vec<String>,
-    rl: &Editor<ShellCompleter, DefaultHistory>,
-) -> Vec<Option<OutputMsg>> {
+fn run_builtin(cmd: &str, args: &Vec<String>, builtin: &Vec<String>, rl: &Editor<ShellCompleter, DefaultHistory>) -> Vec<Option<OutputMsg>> {
     let mut outputs = Vec::new();
     match cmd {
         "exit" => {
@@ -248,12 +241,7 @@ use nix::unistd::{close, pipe};
 use std::os::unix::io::FromRawFd;
 use std::process::{Command, Stdio};
 
-pub fn run_pipeline(
-    cmds: Vec<String>,
-    args: Vec<Vec<String>>,
-    builtin: &Vec<String>,
-    rl: &Editor<ShellCompleter, DefaultHistory>,
-) {
+pub fn run_pipeline(cmds: Vec<String>, args: Vec<Vec<String>>, builtin: &Vec<String>, rl: &Editor<ShellCompleter, DefaultHistory>) {
     let mut children = Vec::new();
     let mut prev_read: Option<RawFd> = None;
 
@@ -328,7 +316,7 @@ pub fn command_handler(
     args: &Vec<String>,
     builtin: &Vec<String>,
     output_conf: OutputConf,
-    rl: &Editor<ShellCompleter, DefaultHistory>,
+    rl: &Editor<ShellCompleter, DefaultHistory>
 ) {
     let mut outputs = Vec::new();
 
