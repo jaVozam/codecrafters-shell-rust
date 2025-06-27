@@ -100,7 +100,7 @@ fn cmd_history(
 ) -> Option<OutputMsg> {
     let mut history = String::new();
 
-    let mut history_len = rl.history().iter().count();
+    let history_len = rl.history().iter().count();
 
     let mut n: usize = history_len;
     if !args.is_empty() {
@@ -109,8 +109,7 @@ fn cmd_history(
         }
         else {
             rl.load_history(&args[1]).ok();
-            history_len = rl.history().iter().count();
-            n = history_len;
+            return None;
         }
     }
 
