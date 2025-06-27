@@ -94,9 +94,9 @@ fn main() {
 
         if cmds.len() == 1 {
             let (arg, output_conf) = input::redirection(args[0].clone());
-            commands::command_handler(&cmds[0], &arg, &builtin, output_conf, &rl);
+            commands::command_handler(&cmds[0], &arg, &builtin, output_conf, &mut rl);
         } else {
-            commands::run_pipeline(cmds, args, &builtin, &rl);
+            commands::run_pipeline(cmds, args, &builtin, &mut rl);
         }
     }
 }

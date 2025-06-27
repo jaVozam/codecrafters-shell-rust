@@ -95,16 +95,23 @@ fn cmd_cd(args: &Vec<String>) -> Option<OutputMsg> {
 use std::fmt::Write as FmtWrite;
 
 fn cmd_history(
-    rl: &Editor<ShellCompleter, DefaultHistory>,
+    rl: &mut Editor<ShellCompleter, DefaultHistory>,
     args: &Vec<String>,
 ) -> Option<OutputMsg> {
     let mut history = String::new();
 
-    let history_len = rl.history().iter().count();
+    let mut history_len = rl.history().iter().count();
 
     let mut n: usize = history_len;
     if !args.is_empty() {
-        n = args[0].parse().expect("Not a valid number");
+        if args[0] != "-r"{
+            n = args[0].parse().expect("Not a valid number");
+        }
+        else {
+            rl.load_history(&args[1]).ok();
+            history_len = rl.history().iter().count();
+            n = history_len;
+        }
     }
 
     let start = if history_len > n { history_len - n } else { 0 };
@@ -202,7 +209,7 @@ fn run_builtin(
     cmd: &str,
     args: &Vec<String>,
     builtin: &Vec<String>,
-    rl: &Editor<ShellCompleter, DefaultHistory>,
+    rl: &mut Editor<ShellCompleter, DefaultHistory>,
 ) -> Vec<Option<OutputMsg>> {
     let mut outputs = Vec::new();
     match cmd {
@@ -252,7 +259,7 @@ pub fn run_pipeline(
     cmds: Vec<String>,
     args: Vec<Vec<String>>,
     builtin: &Vec<String>,
-    rl: &Editor<ShellCompleter, DefaultHistory>,
+    rl: &mut Editor<ShellCompleter, DefaultHistory>,
 ) {
     let mut children = Vec::new();
     let mut prev_read: Option<RawFd> = None;
@@ -328,7 +335,7 @@ pub fn command_handler(
     args: &Vec<String>,
     builtin: &Vec<String>,
     output_conf: OutputConf,
-    rl: &Editor<ShellCompleter, DefaultHistory>,
+    rl: &mut Editor<ShellCompleter, DefaultHistory>,
 ) {
     let mut outputs = Vec::new();
 
