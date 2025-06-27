@@ -115,13 +115,7 @@ fn cmd_history(
             }
             return None;
         } else if args[0] == "-a" {
-            let mut file = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&args[1]).unwrap();
-            for entry in rl.history().iter() {
-                writeln!(file, "{}", entry).ok();
-            }
+            rl.append_history(&args[1]).ok();
             return None;
         } else {
             n = args[0].parse().expect("Not a valid number");
