@@ -122,6 +122,7 @@ fn cmd_history(
             for entry in rl.history().iter() {
                 writeln!(file, "{}", entry).ok();
             }
+            return None;
         } else {
             n = args[0].parse().expect("Not a valid number");
         }
