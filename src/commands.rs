@@ -110,6 +110,7 @@ fn cmd_history(
         }
         else if args[0] == "-w" {
             rl.save_history(&args[1]).ok();
+            return None;
         }
         else {
             n = args[0].parse().expect("Not a valid number");
