@@ -107,12 +107,14 @@ fn cmd_history(
         if args[0] == "-r" {
             rl.load_history(&args[1]).ok();
             return None;
-        }
-        else if args[0] == "-w" {
-            rl.save_history(&args[1]).ok();
+        } else if args[0] == "-w" {
+            let file = std::fs::File::create(&args[1]).unwrap();
+            let mut writer = std::io::BufWriter::new(file);
+            for entry in rl.history().iter() {
+                writeln!(writer, "{}", entry).unwrap();
+            }
             return None;
-        }
-        else {
+        } else {
             n = args[0].parse().expect("Not a valid number");
         }
     }
