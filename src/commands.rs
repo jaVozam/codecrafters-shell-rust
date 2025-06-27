@@ -104,12 +104,15 @@ fn cmd_history(
 
     let mut n: usize = history_len;
     if !args.is_empty() {
-        if args[0] != "-r"{
-            n = args[0].parse().expect("Not a valid number");
-        }
-        else {
+        if args[0] == "-r" {
             rl.load_history(&args[1]).ok();
             return None;
+        }
+        else if args[0] == "-w" {
+            rl.save_history(&args[1]).ok();
+        }
+        else {
+            n = args[0].parse().expect("Not a valid number");
         }
     }
 
