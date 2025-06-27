@@ -94,6 +94,28 @@ fn cmd_cd(args: &Vec<String>) -> Option<OutputMsg> {
 }
 use std::fmt::Write as FmtWrite;
 
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader};
+
+fn delete_first_line(filename: &str) -> std::io::Result<()> {
+    let file = File::open(filename)?;
+    let reader = BufReader::new(file);
+
+    let lines = reader.lines().skip(1).collect::<Result<Vec<_>, _>>()?;
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(filename)?;
+
+    for line in lines.iter() {
+        writeln!(file, "{}", line)?;
+    }
+
+    Ok(())
+}
+
+
 fn cmd_history(
     rl: &mut Editor<ShellCompleter, DefaultHistory>,
     args: &Vec<String>,
@@ -108,14 +130,12 @@ fn cmd_history(
             rl.load_history(&args[1]).ok();
             return None;
         } else if args[0] == "-w" {
-            let file = std::fs::File::create(&args[1]).unwrap();
-            let mut writer = std::io::BufWriter::new(file);
-            for entry in rl.history().iter() {
-                writeln!(writer, "{}", entry).unwrap();
-            }
+            rl.save_history(&args[1]).ok();
+            delete_first_line(&args[1]).unwrap();
             return None;
         } else if args[0] == "-a" {
             rl.append_history(&args[1]).ok();
+            delete_first_line(&args[1]).unwrap();
             return None;
         } else {
             n = args[0].parse().expect("Not a valid number");
